@@ -27,40 +27,21 @@ refl_L9_rcn = np.array([np.mean(ds_refl_L9_rcn[band].values) for band in bands_L
 u_refl_L9_rcn = np.array([np.std(ds_refl_L9_rcn[band].values) for band in bands_L9])
 
 
-class BandIntegrateL9(MeasurementFunction):
-    # your measurement function
-    def meas_function(self, reflectance, wavelength):
-        """
-        Function to perform L9 band integration on reflectance
+def band_integrate_L9(reflectance, wavelength):
+    """
+    Function to perform L9 band integration on reflectance
 
-        :param reflectance: reflectance spectrum
-        :param wavelength: wavelengths
-        """
-        refl_band, band_centres = band_integration.spectral_band_int_sensor(
-            d=reflectance,
-            wl=wavelength,
-            platform_name="Landsat-9",
-            sensor_name="OLI",
-            u_d=None,
-        )
-        return refl_band[:6]
-
-    def get_argument_names(self):
-        """
-        Function that returns the argument names of the meas_func, as they appear in the digital effects table (used to find right variable in input data).
-
-        :return: List of argument names
-        """
-        return ["reflectance", "wavelength"]
-
-    def get_measurand_name_and_unit(self):
-        """
-        Function that returns the measurand name and unit of the meas_func. These will be used to store in the output dataset.
-
-        :return: tuple(measurand name, measurand unit)
-        """
-        return "band_reflectance", ""
-
+    :param reflectance: reflectance spectrum
+    :param wavelength: wavelengths
+    """
+    refl_band, band_centres = band_integration.spectral_band_int_sensor(
+        d=reflectance,
+        wl=wavelength,
+        platform_name="Landsat-8",
+        sensor_name="OLI",
+        u_d=None,
+    )
+    return refl_band[:6]
 
 ds_HYP = xr.open_dataset(
     "HYPERNETS_L_GHNA_L2A_REF_20220606T0900_20231226T1435_v2.0.nc"
@@ -90,24 +71,18 @@ angledif_series = vzadiff**2 + vaadiff**2
 id_series = np.where(angledif_series**2 == np.min(angledif_series**2))[0][0]
 ds_HYP = ds_HYP.isel(series=id_series)
 
-prop = MCPropagation(50, parallel_cores=1)
-band_int_L8 = BandIntegrateL9(prop, use_err_corr_dict=True)
-ds_HYP_L8 = band_int_L8.propagate_ds_total(ds_HYP)
-
 wav_HYP_full = ds_HYP["wavelength"].values
 refl_HYP_full = ds_HYP["reflectance"].values
-u_refl_HYP_full = (
-    refl_HYP_full
-    * np.sqrt(
-        ds_HYP["u_rel_systematic_reflectance"].values ** 2
-        + ds_HYP["u_rel_random_reflectance"].values ** 2
-    )
-    / 100
-)
+u_ran_refl_HYP_full = refl_HYP_full * ds_HYP["u_rel_random_reflectance"].values / 100
+u_sys_refl_HYP_full = refl_HYP_full * ds_HYP["u_rel_systematic_reflectance"].values / 100
+u_refl_HYP_full = np.sqrt(u_ran_refl_HYP_full**2+u_sys_refl_HYP_full**2)
 
-refl_HYP = ds_HYP_L8["band_reflectance"].values
-u_refl_HYP = refl_HYP * ds_HYP_L8["u_tot_band_reflectance"].values / 100
+refl_HYP = band_integrate_L9(refl_HYP_full,wav_HYP_full)
 
+prop = MCPropagation(50, parallel_cores=1)
+u_ran_refl_HYP = prop.propagate_standard(band_integrate_L9,[refl_HYP_full,wav_HYP_full],[u_ran_refl_HYP_full,None],["rand",None])
+u_sys_refl_HYP = prop.propagate_standard(band_integrate_L9,[refl_HYP_full,wav_HYP_full],[u_ran_refl_HYP_full,None],[ds_HYP["err_corr_systematic_reflectance"].values,None])
+u_refl_HYP = np.sqrt(u_ran_refl_HYP**2+u_sys_refl_HYP**2)
 
 rcn_data = np.genfromtxt(
     "GONA01_2022_157_v00.09.input", dtype="str", delimiter="\t", skip_header=4
