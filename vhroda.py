@@ -81,7 +81,7 @@ refl_HYP = band_integrate_L9(refl_HYP_full,wav_HYP_full)
 
 prop = MCPropagation(50, parallel_cores=1)
 u_ran_refl_HYP = prop.propagate_standard(band_integrate_L9,[refl_HYP_full,wav_HYP_full],[u_ran_refl_HYP_full,None],["rand",None])
-u_sys_refl_HYP = prop.propagate_standard(band_integrate_L9,[refl_HYP_full,wav_HYP_full],[u_ran_refl_HYP_full,None],[ds_HYP["err_corr_systematic_reflectance"].values,None])
+u_sys_refl_HYP = prop.propagate_standard(band_integrate_L9,[refl_HYP_full,wav_HYP_full],[u_sys_refl_HYP_full,None],[ds_HYP["err_corr_systematic_reflectance"].values,None])
 u_refl_HYP = np.sqrt(u_ran_refl_HYP**2+u_sys_refl_HYP**2)
 
 rcn_data = np.genfromtxt(
