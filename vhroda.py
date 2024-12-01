@@ -8,6 +8,8 @@ from obsarray.templater.dataset_util import DatasetUtil
 import matplotlib.pyplot as plt
 import os
 
+dates =
+
 ds_refl_L9 = xr.load_dataset("example_L9_20220606.nc")
 ds_refl_L9_rcn = xr.load_dataset("example_L9_20220606_rcn.nc")
 
@@ -76,6 +78,8 @@ refl_HYP_full = ds_HYP["reflectance"].values
 u_ran_refl_HYP_full = refl_HYP_full * ds_HYP["u_rel_random_reflectance"].values / 100
 u_sys_refl_HYP_full = refl_HYP_full * ds_HYP["u_rel_systematic_reflectance"].values / 100
 u_refl_HYP_full = np.sqrt(u_ran_refl_HYP_full**2+u_sys_refl_HYP_full**2)
+
+#
 
 refl_HYP = band_integrate_L9(refl_HYP_full,wav_HYP_full)
 
@@ -377,3 +381,6 @@ plot(
     bias_TOA_rcn,
     u_bias_TOA_rcn,
 )
+
+
+for
